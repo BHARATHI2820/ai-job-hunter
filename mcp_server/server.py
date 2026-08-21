@@ -1,12 +1,13 @@
 """
-Job Search MCP Server — Phase 4
+Job Search MCP Server — Phase 5
 
-search_jobs() now calls a real JobSource (Adzuna) instead of returning
-mock data. The MCP protocol layer is completely unchanged from Phase 2.
+search_jobs() now normalizes every raw result into a validated Job
+model before returning. MCP protocol layer itself is unchanged.
 """
 
 from mcp.server import MCPServer
 
+from core.models.normalize import normalize_job
 from core.sources.adzuna_source import AdzunaSource
 
 mcp = MCPServer("JobSearchServer")
@@ -23,9 +24,11 @@ def search_jobs(role: str, location: str) -> list[dict]:
         location: City or "Remote", e.g. "Chennai".
 
     Returns:
-        A list of job postings matching the search criteria.
+        A list of normalized job postings matching the search criteria.
     """
-    return _source.search(role, location)
+    raw_jobs = _source.search(role, location)
+    normalized = [normalize_job(job) for job in raw_jobs]
+    return [job.model_dump(mode="json") for job in normalized]
 
 
 if __name__ == "__main__":
