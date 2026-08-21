@@ -11,12 +11,10 @@ import json
 import os
 
 from dotenv import load_dotenv
+load_dotenv()
 from google import genai
 from mcp import Client as MCPClient
-
 from mcp_server.server import mcp
-
-load_dotenv()
 
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.7-flash")
 

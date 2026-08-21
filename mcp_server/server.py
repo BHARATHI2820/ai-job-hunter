@@ -1,13 +1,17 @@
 """
-Job Search MCP Server — Phase 2
+Job Search MCP Server — Phase 4
 
-Exposes a single mock tool: search_jobs().
-No real job source, no LLM, no client logic here — server only.
+search_jobs() now calls a real JobSource (Adzuna) instead of returning
+mock data. The MCP protocol layer is completely unchanged from Phase 2.
 """
 
 from mcp.server import MCPServer
 
+from core.sources.adzuna_source import AdzunaSource
+
 mcp = MCPServer("JobSearchServer")
+
+_source = AdzunaSource()
 
 
 @mcp.tool()
@@ -21,29 +25,7 @@ def search_jobs(role: str, location: str) -> list[dict]:
     Returns:
         A list of job postings matching the search criteria.
     """
-    # Phase 2: mock data only. Real source integration comes in Phase 4.
-    return [
-        {
-            "id": "mock-001",
-            "title": f"{role}",
-            "company": "MockCorp AI",
-            "location": location,
-            "experience_min": 1,
-            "experience_max": 3,
-            "active_status": "active",
-            "source": "mock",
-        },
-        {
-            "id": "mock-002",
-            "title": f"Senior {role}",
-            "company": "MockCorp AI",
-            "location": location,
-            "experience_min": 5,
-            "experience_max": 8,
-            "active_status": "active",
-            "source": "mock",
-        },
-    ]
+    return _source.search(role, location)
 
 
 if __name__ == "__main__":
