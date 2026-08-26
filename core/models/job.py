@@ -32,3 +32,5 @@ class Job(BaseModel):
     fetched_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     active_status: Literal["active", "inactive", "unknown"] = "unknown"
     active_status_reason: str | None = None
+    matched_skills: list[str] = Field(default_factory=list)
+    skill_match_score: float | None = None

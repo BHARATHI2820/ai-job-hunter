@@ -1,0 +1,17 @@
+{
+  "genai_llm_skills": [
+    "LLM", "Generative AI", "RAG", "LangGraph", "LangChain",
+    "Prompt Engineering", "Vector Embeddings", "Semantic Search",
+    "Schema-RAG", "Corpus Memory", "Response Caching",
+    "Hallucination Mitigation", "Azure AI Foundry", "Llama"
+  ],
+  "vector_db_skills": ["ChromaDB", "FAISS"],
+  "backend_skills": [
+    "Python", "Django", "Django REST Framework", "REST API",
+    "Celery", "Redis", "NDJSON", "JWT"
+  ],
+  "database_skills": ["PostgreSQL", "MySQL", "SQL", "NL-to-SQL"],
+  "ai_ml_skills": ["YOLOv8", "ResNet50", "Deep Learning", "Machine Learning"],
+  "voice_ai_skills": ["Whisper", "gTTS"],
+  "dev_tools_skills": ["Git", "GitLab", "CI/CD", "Postman"]
+}

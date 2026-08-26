@@ -8,6 +8,7 @@ then decide to call verify_job_active, before producing a final answer.
 import asyncio
 import json
 import os
+from pprint import pprint
 
 from dotenv import load_dotenv
 
@@ -95,7 +96,14 @@ async def run_query(user_input: str) -> None:
             mcp_result = await mcp_client.call_tool(fc_step.name, fc_step.arguments)
             tool_result = _unwrap_mcp_result(mcp_result)
 
-            print(f"[MCP Server returned] {tool_result}")
+            print("[MCP Server returned]")
+            if isinstance(tool_result, list):
+                for i, job in enumerate(tool_result, 1):
+                    print(f"\n--- Job {i} ---")
+                    for key, value in job.items():
+                        print(f"{key}: {value}")
+            else:
+                pprint(tool_result, sort_dicts=False)
 
             interaction = client.interactions.create(
                 model=GEMINI_MODEL,

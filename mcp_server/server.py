@@ -1,8 +1,8 @@
 """
-Job Search MCP Server — Phase 8
+Job Search MCP Server — Phase 9
 
-search_jobs() now applies deterministic hard filtering (experience,
-location) after dedup, before returning results.
+search_jobs() now scores each surviving job against the candidate
+profile (keyword-level matching) before returning results.
 """
 
 from typing import TypedDict
@@ -11,16 +11,17 @@ from mcp.server import MCPServer
 
 from core.dedup.deduplicate import dedup_jobs
 from core.filtering.hard_filter import HardFilterConfig, apply_hard_filters
+from core.matching.keyword_match import score_job_against_profile
 from core.models.normalize import normalize_job
+from core.profile.load_profile import load_profile
 from core.sources.adzuna_source import AdzunaSource
 from core.verification.active_check import verify_url_active
 
 mcp = MCPServer("JobSearchServer")
 
 _source = AdzunaSource()
+_profile = load_profile()
 
-# Configurable, not hardcoded — matches your actual profile (section 2).
-# Later phases can move this to an env var or a user-editable profile file.
 _FILTER_CONFIG = HardFilterConfig(
     candidate_experience_years=1.3,
     experience_buffer_years=2.0,
@@ -42,9 +43,11 @@ def search_jobs(role: str, location: str) -> list[dict]:
         location: City or "Remote", e.g. "Chennai".
 
     Returns:
-        A deduplicated, hard-filtered list of normalized job postings.
-        Jobs requiring significantly more experience than the configured
-        candidate profile, or clearly mismatched on location, are excluded.
+        A deduplicated, hard-filtered list of jobs, each scored against
+        the candidate's skill profile (matched_skills, skill_match_score).
+        Score is exact keyword matching only — paraphrased or misspelled
+        skills in a posting may not be detected (see Phase 10 for
+        semantic matching).
     """
     raw_jobs = _source.search(role, location)
     normalized = [normalize_job(job) for job in raw_jobs]
@@ -57,6 +60,11 @@ def search_jobs(role: str, location: str) -> list[dict]:
         allow_remote=_FILTER_CONFIG.allow_remote,
     )
     kept, _rejected = apply_hard_filters(deduped, config)
+
+    for job in kept:
+        matched, score = score_job_against_profile(job, _profile)
+        job.matched_skills = matched
+        job.skill_match_score = score
 
     return [job.model_dump(mode="json") for job in kept]
 
