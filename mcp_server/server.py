@@ -1,24 +1,26 @@
 """
-Job Search MCP Server — Phase 6
+Job Search MCP Server — Phase 7
 
-Now exposes two tools: search_jobs() and verify_job_active().
-Gemini decides when each is needed; the server has no opinion.
+search_jobs() now deduplicates normalized results before returning.
 """
 
-from mcp.server import MCPServer
 from typing import TypedDict
 
+from mcp.server import MCPServer
+
+from core.dedup.deduplicate import dedup_jobs
 from core.models.normalize import normalize_job
 from core.sources.adzuna_source import AdzunaSource
 from core.verification.active_check import verify_url_active
 
-class ActiveCheckResult(TypedDict):
-    active_status: str
-    active_status_reason: str
-
 mcp = MCPServer("JobSearchServer")
 
 _source = AdzunaSource()
+
+
+class ActiveCheckResult(TypedDict):
+    active_status: str
+    active_status_reason: str
 
 
 @mcp.tool()
@@ -30,11 +32,12 @@ def search_jobs(role: str, location: str) -> list[dict]:
         location: City or "Remote", e.g. "Chennai".
 
     Returns:
-        A list of normalized job postings matching the search criteria.
+        A deduplicated list of normalized job postings.
     """
     raw_jobs = _source.search(role, location)
     normalized = [normalize_job(job) for job in raw_jobs]
-    return [job.model_dump(mode="json") for job in normalized]
+    deduped = dedup_jobs(normalized)
+    return [job.model_dump(mode="json") for job in deduped]
 
 
 @mcp.tool()
@@ -46,8 +49,7 @@ def verify_job_active(job_url: str) -> ActiveCheckResult:
 
     Returns:
         A dict with active_status ("active"/"inactive"/"unknown") and
-        active_status_reason explaining the result. This is a best-effort
-        signal, not a guarantee the posting is still accepting applications.
+        active_status_reason. Best-effort signal, not a guarantee.
     """
     return verify_url_active(job_url)
 
