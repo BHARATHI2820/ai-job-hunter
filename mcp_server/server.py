@@ -1,8 +1,9 @@
 """
-Job Search MCP Server — Phase 9
+Job Search MCP Server — Phase 10
 
-search_jobs() now scores each surviving job against the candidate
-profile (keyword-level matching) before returning results.
+search_jobs() now also computes a semantic_match_score for each job,
+using embeddings to catch meaning-level fit that exact keyword
+matching (Phase 9) misses.
 """
 
 from typing import TypedDict
@@ -12,6 +13,7 @@ from mcp.server import MCPServer
 from core.dedup.deduplicate import dedup_jobs
 from core.filtering.hard_filter import HardFilterConfig, apply_hard_filters
 from core.matching.keyword_match import score_job_against_profile
+from core.matching.semantic_match import semantic_score_jobs
 from core.models.normalize import normalize_job
 from core.profile.load_profile import load_profile
 from core.sources.adzuna_source import AdzunaSource
@@ -43,11 +45,10 @@ def search_jobs(role: str, location: str) -> list[dict]:
         location: City or "Remote", e.g. "Chennai".
 
     Returns:
-        A deduplicated, hard-filtered list of jobs, each scored against
-        the candidate's skill profile (matched_skills, skill_match_score).
-        Score is exact keyword matching only — paraphrased or misspelled
-        skills in a posting may not be detected (see Phase 10 for
-        semantic matching).
+        A deduplicated, hard-filtered list of jobs, each scored two ways:
+        skill_match_score (exact keyword overlap) and semantic_match_score
+        (embedding-based meaning similarity, catches paraphrased or
+        misspelled skills that keyword matching misses).
     """
     raw_jobs = _source.search(role, location)
     normalized = [normalize_job(job) for job in raw_jobs]
@@ -65,6 +66,8 @@ def search_jobs(role: str, location: str) -> list[dict]:
         matched, score = score_job_against_profile(job, _profile)
         job.matched_skills = matched
         job.skill_match_score = score
+
+    semantic_score_jobs(kept, _profile)
 
     return [job.model_dump(mode="json") for job in kept]
 

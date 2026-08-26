@@ -1,10 +1,3 @@
-"""
-Normalized Job model — Phase 5.
-
-Every job, regardless of source, is converted into this model
-immediately after retrieval. No raw source dicts flow past this point.
-"""
-
 from datetime import datetime, UTC
 from typing import Literal
 
@@ -34,3 +27,4 @@ class Job(BaseModel):
     active_status_reason: str | None = None
     matched_skills: list[str] = Field(default_factory=list)
     skill_match_score: float | None = None
+    semantic_match_score: float | None = None
