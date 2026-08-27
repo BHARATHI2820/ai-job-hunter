@@ -1,9 +1,7 @@
 """
-Job Search MCP Server — Phase 10
+Job Search MCP Server — Phase 11
 
-search_jobs() now also computes a semantic_match_score for each job,
-using embeddings to catch meaning-level fit that exact keyword
-matching (Phase 9) misses.
+search_jobs() now persists results to Postgres (Neon) after scoring.
 """
 
 from typing import TypedDict
@@ -18,6 +16,7 @@ from core.models.normalize import normalize_job
 from core.profile.load_profile import load_profile
 from core.sources.adzuna_source import AdzunaSource
 from core.verification.active_check import verify_url_active
+from db.repository import save_search, upsert_job
 
 mcp = MCPServer("JobSearchServer")
 
@@ -45,10 +44,9 @@ def search_jobs(role: str, location: str) -> list[dict]:
         location: City or "Remote", e.g. "Chennai".
 
     Returns:
-        A deduplicated, hard-filtered list of jobs, each scored two ways:
-        skill_match_score (exact keyword overlap) and semantic_match_score
-        (embedding-based meaning similarity, catches paraphrased or
-        misspelled skills that keyword matching misses).
+        A deduplicated, hard-filtered, scored list of jobs. Results are
+        also persisted to Postgres for search history and future
+        new-jobs-only comparisons.
     """
     raw_jobs = _source.search(role, location)
     normalized = [normalize_job(job) for job in raw_jobs]
@@ -68,6 +66,10 @@ def search_jobs(role: str, location: str) -> list[dict]:
         job.skill_match_score = score
 
     semantic_score_jobs(kept, _profile)
+
+    for job in kept:
+        upsert_job(job)
+    save_search(role, location, len(kept))
 
     return [job.model_dump(mode="json") for job in kept]
 
