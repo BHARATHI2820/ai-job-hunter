@@ -1,8 +1,9 @@
 """
-AI Job Hunter — Host (Phase 12)
+AI Job Hunter — Host (Phase 13)
 
-Now delegates orchestration to an explicit LangGraph StateGraph
-(agent_host/graph.py) instead of a manual while-loop.
+run_query() now returns the full result dict so callers (CLI here,
+Streamlit in ui/streamlit_app.py) can access final_answer, the
+interaction ID for context continuation, and structured job results.
 """
 
 import asyncio
@@ -50,24 +51,25 @@ VERIFY_JOB_ACTIVE_FUNCTION = {
 TOOLS = [SEARCH_JOBS_FUNCTION, VERIFY_JOB_ACTIVE_FUNCTION]
 
 
-async def run_query(user_input: str) -> None:
+async def run_query(user_input: str, previous_interaction_id: str | None = None) -> dict:
     client = genai.Client()
 
     async with MCPClient(mcp) as mcp_client:
         app = build_graph(client, mcp_client, GEMINI_MODEL, TOOLS)
 
         result = await app.ainvoke(
-            {"user_input": user_input, "iteration": 0},
+            {
+                "user_input": user_input,
+                "carry_over_interaction_id": previous_interaction_id,
+                "iteration": 0,
+            },
             config={"recursion_limit": 15},
         )
-
-        print(f"\n[Gemini's final answer]\n{result.get('final_answer')}")
+        return result
 
 
 if __name__ == "__main__":
-    asyncio.run(run_query("Find Quantum Blockchain Astrophysicist jobs in Antarctica"))
-    asyncio.run(
-        run_query(
-            "Find GenAI Engineer jobs in Chennai, and verify if the top result is still active."
-        )
+    result = asyncio.run(
+        run_query("Find GenAI Engineer jobs in Chennai, and verify if the top result is still active.")
     )
+    print(f"\n[Gemini's final answer]\n{result.get('final_answer')}")
