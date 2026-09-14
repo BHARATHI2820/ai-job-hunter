@@ -11,6 +11,7 @@ from mcp.server import MCPServer
 from core.dedup.deduplicate import dedup_jobs
 from core.filtering.hard_filter import HardFilterConfig, apply_hard_filters
 from core.matching.keyword_match import score_job_against_profile
+from core.matching.ranking import rank_jobs
 from core.matching.semantic_match import semantic_score_jobs
 from core.models.normalize import normalize_job
 from core.profile.load_profile import load_profile
@@ -73,6 +74,8 @@ def search_jobs(role: str, location: str) -> list[dict]:
         job.skill_match_score = score
 
     semantic_score_jobs(kept, _profile)
+
+    kept = rank_jobs(kept)
 
     for job in kept:
         upsert_job(job)
