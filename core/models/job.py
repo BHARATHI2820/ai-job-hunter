@@ -29,3 +29,4 @@ class Job(BaseModel):
     skill_match_score: float | None = None
     semantic_match_score: float | None = None
     relevance_score: float | None = None
+    match_explanation: str | None = None
