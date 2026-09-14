@@ -15,12 +15,19 @@ from core.matching.semantic_match import semantic_score_jobs
 from core.models.normalize import normalize_job
 from core.profile.load_profile import load_profile
 from core.sources.adzuna_source import AdzunaSource
+from core.sources.indianapi_source import IndianAPISource
+from core.sources.multi_source import MultiSourceJobSource
 from core.verification.active_check import verify_url_active
 from db.repository import save_search, upsert_job
 
 mcp = MCPServer("JobSearchServer")
 
-_source = AdzunaSource()
+_source = MultiSourceJobSource(
+    sources=[
+        AdzunaSource(),
+        IndianAPISource(),
+    ]
+)
 _profile = load_profile()
 
 _FILTER_CONFIG = HardFilterConfig(
