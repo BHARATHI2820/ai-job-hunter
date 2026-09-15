@@ -13,6 +13,7 @@ from core.filtering.hard_filter import HardFilterConfig, apply_hard_filters
 from core.matching.explanation import build_match_explanation
 from core.matching.keyword_match import score_job_against_profile
 from core.matching.experience_fit import calculate_experience_fit
+from core.matching.freshness import calculate_freshness_score
 from core.matching.ranking import rank_jobs
 from core.matching.semantic_match import semantic_score_jobs
 from core.models.normalize import normalize_job
@@ -78,6 +79,7 @@ def search_jobs(role: str, location: str) -> list[dict]:
             job,
             _profile.experience_years,
         )
+        job.freshness_score = calculate_freshness_score(job)
 
     semantic_score_jobs(kept, _profile)
 

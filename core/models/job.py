@@ -29,6 +29,7 @@ class Job(BaseModel):
     matched_skills: list[str] = Field(default_factory=list)
     skill_match_score: float | None = None
     experience_fit_score: float | None = None
-    semantic_match_score: float | None = None
+    freshness_score: float | None = None
     relevance_score: float | None = None
+    semantic_match_score: float | None = None
     match_explanation: str | None = None
