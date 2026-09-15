@@ -7,6 +7,15 @@ No LLM call is used.
 
 from core.models.job import Job
 
+def _format_years(value: float | int) -> str:
+    """Format experience years without unnecessary decimal zeros."""
+    value = float(value)
+
+    if value.is_integer():
+        return f"{value:.0f}"
+
+    return f"{value:g}"
+
 
 def build_match_explanation(job: Job) -> str:
     """Build a human-readable explanation for a job match."""
@@ -37,12 +46,12 @@ def build_match_explanation(job: Job) -> str:
     if job.experience_min is not None:
         if job.experience_max is not None:
             explanation += (
-                f". Experience: {job.experience_min}–"
-                f"{job.experience_max} years"
+                f". Experience: {_format_years(job.experience_min)}–"
+                f"{_format_years(job.experience_max)} years"
             )
         else:
             explanation += (
-                f". Experience: {job.experience_min}+ years"
+                f". Experience: {_format_years(job.experience_min)}+ years"
             )
 
     if job.location:

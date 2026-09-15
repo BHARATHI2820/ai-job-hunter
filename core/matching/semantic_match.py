@@ -52,13 +52,19 @@ def semantic_score_jobs(jobs: list[Job], profile: CandidateProfile) -> None:
 
     model = _get_model()
     profile_text = build_profile_text(profile)
-    profile_embedding = model.encode(profile_text).tolist()
+    profile_embedding = model.encode(
+        profile_text,
+        show_progress_bar=False,
+    ).tolist()
 
     client = chromadb.EphemeralClient()
     collection = client.create_collection(name=f"job_matching_{uuid.uuid4().hex}")
 
     documents = [f"{job.title or ''} {job.description or ''}" for job in jobs]
-    embeddings = model.encode(documents).tolist()
+    embeddings = model.encode(
+        documents,
+        show_progress_bar=False,
+    ).tolist()
     ids = [f"job-{i}" for i in range(len(jobs))]
 
     collection.add(ids=ids, embeddings=embeddings, documents=documents)

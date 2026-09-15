@@ -13,11 +13,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from core.logging_config import configure_logging, get_logger
+
 from google import genai
 from mcp import Client as MCPClient
 
 from agent_host.graph import build_graph
 from mcp_server.server import mcp
+configure_logging()
+logger = get_logger(__name__)
 
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.7-flash")
 
@@ -72,4 +76,4 @@ if __name__ == "__main__":
     result = asyncio.run(
         run_query("Find GenAI Engineer jobs in Chennai, and verify if the top result is still active.")
     )
-    print(f"\n[Gemini's final answer]\n{result.get('final_answer')}")
+    logger.info("[HOST] Final response generated")

@@ -9,6 +9,8 @@ from dataclasses import dataclass
 
 from core.filtering.experience_extractor import extract_experience_range
 from core.models.job import Job
+from core.logging_config import get_logger
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -70,8 +72,6 @@ def apply_hard_filters(
             kept.append(job)
 
     if rejected:
-        print(f"[HARD FILTER] Rejected {len(rejected)} job(s):")
-        for job, reason in rejected:
-            print(f"    - {job.title} @ {job.company}: {reason}")
+        logger.info(f"[FILTER] {len(kept)} kept | {len(rejected)} rejected")
 
     return kept, rejected

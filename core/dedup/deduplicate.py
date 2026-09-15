@@ -14,7 +14,8 @@ occurrence in the input order is kept.
 import re
 
 from core.models.job import Job
-
+from core.logging_config import get_logger
+logger = get_logger(__name__)
 
 def _normalize_text(value: str | None) -> str:
     if not value:
@@ -52,6 +53,6 @@ def dedup_jobs(jobs: list[Job]) -> list[Job]:
         result.append(job)
 
     if removed_count:
-        print(f"[DEDUP] Removed {removed_count} duplicate job(s)")
+        logger.info(f"[DEDUP] Removed {removed_count} duplicate job(s)")
 
     return result

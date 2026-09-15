@@ -6,6 +6,8 @@ search_jobs() now persists results to Postgres (Neon) after scoring.
 
 from typing import TypedDict
 
+from core.logging_config import get_logger
+logger = get_logger(__name__)
 from mcp.server import MCPServer
 
 from core.dedup.deduplicate import dedup_jobs
@@ -59,8 +61,11 @@ def search_jobs(role: str, location: str) -> list[dict]:
         also persisted to Postgres for search history and future
         new-jobs-only comparisons.
     """
+    logger.info(f"[SEARCH] {role} | {location}")
     raw_jobs = _source.search(role, location)
+    logger.info(f"[SEARCH] Retrieved {len(raw_jobs)} raw job(s)")
     normalized = [normalize_job(job) for job in raw_jobs]
+    logger.info(f"[NORMALIZE] {len(normalized)} job(s) normalized")
     deduped = dedup_jobs(normalized)
 
     config = HardFilterConfig(
@@ -69,7 +74,10 @@ def search_jobs(role: str, location: str) -> list[dict]:
         requested_location=location,
         allow_remote=_FILTER_CONFIG.allow_remote,
     )
-    kept, _rejected = apply_hard_filters(deduped, config)
+    kept, rejected = apply_hard_filters(deduped, config)
+
+    if not rejected:
+        logger.info(f"[FILTER] {len(kept)} kept | 0 rejected")
 
     for job in kept:
         matched, score = score_job_against_profile(job, _profile)
@@ -81,14 +89,20 @@ def search_jobs(role: str, location: str) -> list[dict]:
         )
         job.freshness_score = calculate_freshness_score(job)
 
+    logger.info("[MATCH] Keyword, experience and freshness scoring completed")
+
     semantic_score_jobs(kept, _profile)
+    logger.info("[MATCH] Semantic scoring completed")
 
     kept = rank_jobs(kept)
+    logger.info(f"[RANKING] {len(kept)} job(s) ranked")
 
     for job in kept:
         job.match_explanation = build_match_explanation(job)
         upsert_job(job)
     save_search(role, location, len(kept))
+    logger.info(f"[DB] {len(kept)} job(s) persisted")
+    logger.info("[SEARCH] Completed")
 
     return [job.model_dump(mode="json") for job in kept]
 

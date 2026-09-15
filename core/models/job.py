@@ -14,8 +14,8 @@ class Job(BaseModel):
     required_skills: list[str] = Field(default_factory=list)
     preferred_skills: list[str] = Field(default_factory=list)
     experience_text: str | None = None
-    experience_min: int | None = None
-    experience_max: int | None = None
+    experience_min: float | None = None
+    experience_max: float | None = None
     salary_min: float | None = None
     salary_max: float | None = None
     currency: str = "INR"

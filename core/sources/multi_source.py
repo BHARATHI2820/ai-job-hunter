@@ -4,8 +4,9 @@ Multi-source job search.
 Combines results from all configured job sources.
 If one source fails, other sources can still return results.
 """
-
 from core.sources.base import JobSource
+from core.logging_config import get_logger
+logger = get_logger(__name__)
 
 
 class MultiSourceJobSource(JobSource):
@@ -20,15 +21,15 @@ class MultiSourceJobSource(JobSource):
                 jobs = source.search(role, location)
                 all_jobs.extend(jobs)
 
-                print(
+                logger.info(
                     f"[SOURCE] {source.__class__.__name__} "
                     f"returned {len(jobs)} job(s)"
                 )
 
             except Exception as exc:
-                print(
+                logger.warning(
                     f"[SOURCE] {source.__class__.__name__} failed: "
-                    f"{type(exc).__name__}: {exc}"
+                    f"{type(exc).__name__}: {exc} — skipped"
                 )
 
         return all_jobs

@@ -13,6 +13,8 @@ from typing import Any, TypedDict
 from google.genai._gaos.lib.compat_errors import RateLimitError
 from langgraph.graph import END, StateGraph
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
+from core.logging_config import get_logger
+logger = get_logger(__name__)
 
 
 class AgentState(TypedDict, total=False):
@@ -94,7 +96,7 @@ def build_graph(genai_client, mcp_client, gemini_model: str, tools: list[dict]):
             "tool_result": None,
         }
         if fc_step:
-            print(f"[Gemini decided to call] {fc_step.name}({fc_step.arguments})")
+            logger.info(f"[AGENT] Tool selected: {fc_step.name}")
             updates.update(
                 {
                     "pending_call_name": fc_step.name,
@@ -111,7 +113,7 @@ def build_graph(genai_client, mcp_client, gemini_model: str, tools: list[dict]):
         mcp_result = await mcp_client.call_tool(name, state["pending_call_args"])
         result = _unwrap_mcp_result(mcp_result)
         summary = f"{len(result)} job(s)" if isinstance(result, list) else result
-        print(f"[MCP Server returned] {summary}")
+        logger.info(f"[MCP] {name} returned {summary}")
 
         updates: dict = {"tool_result": result}
         if name == "search_jobs" and isinstance(result, list):
@@ -121,7 +123,10 @@ def build_graph(genai_client, mcp_client, gemini_model: str, tools: list[dict]):
         return updates
 
     def no_jobs_shortcut_node(state: AgentState) -> dict:
-        print("[GRAPH] search_jobs returned 0 results — skipping extra Gemini call")
+        logger.info(
+            "[GRAPH] search_jobs returned 0 results — "
+            "skipping extra Gemini call"
+        )
         return {
             "final_answer": (
                 "No jobs matched your search after filtering. Try a different "
