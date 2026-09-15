@@ -15,6 +15,7 @@ def test_indianapi_source_maps_jobs(monkeypatch):
             "company": "Test Company",
             "location": "Chennai",
             "job_description": "Build GenAI applications.",
+            "experience": "1-3 years",
             "apply_link": "https://example.com/job/123",
             "posted_date": "2026-09-10T10:00:00",
         }
@@ -36,6 +37,7 @@ def test_indianapi_source_maps_jobs(monkeypatch):
     assert job["company"] == "Test Company"
     assert job["location"] == "Chennai"
     assert job["description"] == "Build GenAI applications."
+    assert job["experience"] == "1-3 years"
     assert job["job_url"] == "https://example.com/job/123"
     assert job["source"] == "indianapi"
 

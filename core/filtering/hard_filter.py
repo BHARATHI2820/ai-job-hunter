@@ -24,7 +24,8 @@ class HardFilterConfig:
 
 
 def _fails_experience(job: Job, config: HardFilterConfig) -> str | None:
-    exp_min, exp_max = extract_experience_range(job.description)
+    experience_source = job.experience_text or job.description
+    exp_min, exp_max = extract_experience_range(experience_source)
     job.experience_min = exp_min
     job.experience_max = exp_max
 

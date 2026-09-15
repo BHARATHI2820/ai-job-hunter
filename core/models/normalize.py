@@ -26,6 +26,7 @@ def normalize_job(raw: dict) -> Job:
         company=raw.get("company"),
         location=raw.get("location"),
         description=raw.get("description"),
+        experience_text=raw.get("experience"),
         salary_min=raw.get("salary_min"),
         salary_max=raw.get("salary_max"),
         source=raw.get("source", "unknown"),

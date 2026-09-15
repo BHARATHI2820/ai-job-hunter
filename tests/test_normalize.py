@@ -19,12 +19,14 @@ def test_normalize_job_with_complete_data():
         "job_url": "https://example.com/job/12345",
         "posted_date": "2026-08-15T16:04:16Z",
         "active_status": "unknown",
+        "experience": "1-3 years",
     }
     job = normalize_job(raw)
     assert isinstance(job, Job)
     assert job.title == "GenAI Engineer"
     assert job.posted_date is not None
     assert job.currency == "INR"
+    assert job.experience_text == "1-3 years"
 
 
 def test_normalize_job_with_missing_fields():

@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 
 class CandidateProfile(BaseModel):
+    experience_years: float = 1.3
     genai_llm_skills: list[str] = Field(default_factory=list)
     vector_db_skills: list[str] = Field(default_factory=list)
     backend_skills: list[str] = Field(default_factory=list)

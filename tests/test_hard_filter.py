@@ -89,3 +89,21 @@ def test_remote_is_allowed_regardless_of_requested_city():
     )
     kept, rejected = apply_hard_filters([job], config)
     assert len(kept) == 1
+
+def test_structured_experience_text_is_used():
+    job = _make_job(
+        experience_text="1-3 years",
+        description="GenAI Engineer role with strong Python skills.",
+    )
+
+    config = HardFilterConfig(
+        candidate_experience_years=1.3,
+        experience_buffer_years=2.0,
+    )
+
+    kept, rejected = apply_hard_filters([job], config)
+
+    assert len(kept) == 1
+    assert len(rejected) == 0
+    assert job.experience_min == 1.0
+    assert job.experience_max == 3.0

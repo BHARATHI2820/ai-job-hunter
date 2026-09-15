@@ -1,4 +1,5 @@
 {
+  "experience_years": 1.3,
   "genai_llm_skills": [
     "LLM", "Generative AI", "RAG", "LangGraph", "LangChain",
     "Prompt Engineering", "Vector Embeddings", "Semantic Search",

@@ -57,7 +57,11 @@ class IndianAPISource(JobSource):
                     "title": job.get("title") or job.get("job_title"),
                     "company": job.get("company"),
                     "location": job.get("location"),
-                    "description": job.get("job_description"),
+                    "description": (
+                        job.get("job_description")
+                        or ""
+                    ),
+                    "experience": job.get("experience"),
                     "salary_min": None,
                     "salary_max": None,
                     "posted_date": job.get("posted_date"),

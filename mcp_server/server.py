@@ -12,6 +12,7 @@ from core.dedup.deduplicate import dedup_jobs
 from core.filtering.hard_filter import HardFilterConfig, apply_hard_filters
 from core.matching.explanation import build_match_explanation
 from core.matching.keyword_match import score_job_against_profile
+from core.matching.experience_fit import calculate_experience_fit
 from core.matching.ranking import rank_jobs
 from core.matching.semantic_match import semantic_score_jobs
 from core.models.normalize import normalize_job
@@ -33,7 +34,7 @@ _source = MultiSourceJobSource(
 _profile = load_profile()
 
 _FILTER_CONFIG = HardFilterConfig(
-    candidate_experience_years=1.3,
+    candidate_experience_years=_profile.experience_years,
     experience_buffer_years=2.0,
     allow_remote=True,
 )
@@ -73,6 +74,10 @@ def search_jobs(role: str, location: str) -> list[dict]:
         matched, score = score_job_against_profile(job, _profile)
         job.matched_skills = matched
         job.skill_match_score = score
+        job.experience_fit_score = calculate_experience_fit(
+            job,
+            _profile.experience_years,
+        )
 
     semantic_score_jobs(kept, _profile)
 
