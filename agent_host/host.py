@@ -56,11 +56,21 @@ TOOLS = [SEARCH_JOBS_FUNCTION, VERIFY_JOB_ACTIVE_FUNCTION]
 
 
 async def run_query(user_input: str, previous_interaction_id: str | None = None) -> dict:
+    print("[DEBUG] run_query entered", flush=True)
+
+    print("[DEBUG] Creating Gemini client...", flush=True)
     client = genai.Client()
+    print("[DEBUG] Gemini client created", flush=True)
 
+    print("[DEBUG] Entering MCP client...", flush=True)
     async with MCPClient(mcp) as mcp_client:
+        print("[DEBUG] MCP client connected", flush=True)
+        print("[DEBUG] Building graph...", flush=True)
         app = build_graph(client, mcp_client, GEMINI_MODEL, TOOLS)
+        print("[DEBUG] Graph built", flush=True)
 
+
+        print("[DEBUG] Invoking graph...", flush=True)
         result = await app.ainvoke(
             {
                 "user_input": user_input,
@@ -69,6 +79,8 @@ async def run_query(user_input: str, previous_interaction_id: str | None = None)
             },
             config={"recursion_limit": 15},
         )
+
+        print("[DEBUG] Graph completed", flush=True)
         return result
 
 
