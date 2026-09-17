@@ -8,6 +8,26 @@ from core.sources.base import JobSource
 from core.logging_config import get_logger
 logger = get_logger(__name__)
 
+def build_configured_sources(source_classes: list[type[JobSource]]) -> list[JobSource]:
+    """
+    Instantiate each source class, skipping any that raise ValueError
+    (e.g. missing API keys) instead of crashing the whole app.
+    """
+    sources: list[JobSource] = []
+
+    for source_cls in source_classes:
+        try:
+            sources.append(source_cls())
+        except ValueError as exc:
+            logger.warning(
+                f"[SOURCE] {source_cls.__name__} not configured, skipping: {exc}"
+            )
+
+    if not sources:
+        logger.warning("[SOURCE] No job sources are configured!")
+
+    return sources
+
 
 class MultiSourceJobSource(JobSource):
     def __init__(self, sources: list[JobSource]) -> None:

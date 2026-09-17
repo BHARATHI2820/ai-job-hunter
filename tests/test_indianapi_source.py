@@ -1,4 +1,5 @@
 from unittest.mock import Mock, patch
+import pytest
 
 from core.sources.indianapi_source import IndianAPISource
 
@@ -69,3 +70,25 @@ def test_indianapi_source_returns_empty_for_invalid_response(monkeypatch):
         jobs = source.search("GenAI Engineer", "Chennai")
 
     assert jobs == []
+
+def test_indianapi_429_not_retried(monkeypatch):
+    """429 should fail fast — no retry delay for quota exhaustion."""
+    import requests
+    from core.sources.indianapi_source import IndianAPISource
+
+    call_count = {"n": 0}
+
+    def fake_get(*args, **kwargs):
+        call_count["n"] += 1
+        response = requests.Response()
+        response.status_code = 429
+        return response
+
+    monkeypatch.setenv("INDIANAPI_JOBS_API_KEY", "dummy")
+    monkeypatch.setattr(requests, "get", fake_get)
+
+    source = IndianAPISource()
+    with pytest.raises(requests.exceptions.HTTPError):
+        source.search("GenAI Engineer", "Chennai")
+
+    assert call_count["n"] == 1  # no retry attempted for 429

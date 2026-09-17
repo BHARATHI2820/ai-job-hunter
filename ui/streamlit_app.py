@@ -515,37 +515,55 @@ if user_input:
 
             except BaseExceptionGroup as eg:
 
-                st.error(
-                    "The agent encountered multiple errors. "
-                    "Please check the terminal logs."
+                logger.error(
+                    "[UI] Agent encountered multiple errors: %s",
+                    eg,
                 )
 
                 for i, sub_exc in enumerate(
                     eg.exceptions
                 ):
-
-                    print(
-                        f"\n[DEBUG] Sub-exception {i}: "
-                        f"{type(sub_exc).__name__}: {sub_exc}"
-                    )
-
-                    traceback.print_exception(
-                        type(sub_exc),
+                    logger.error(
+                        "[UI] Sub-exception %s: %s: %s",
+                        i,
+                        type(sub_exc).__name__,
                         sub_exc,
-                        sub_exc.__traceback__,
+                        exc_info=sub_exc,
                     )
 
-                raise
+                st.error(
+                    "The job search encountered an unexpected error. "
+                    "Please try again."
+                )
+
+                result = {
+                    "final_answer": (
+                        "I couldn't complete the job search right now. "
+                        "Please try again."
+                    ),
+                    "last_search_results": [],
+                }
 
             except Exception as exc:
 
-                st.error(
-                    f"Something went wrong while searching: {exc}"
+                logger.error(
+                    "[UI] Job search failed: %s",
+                    exc,
+                    exc_info=True,
                 )
 
-                traceback.print_exc()
+                st.error(
+                    "I couldn't complete the job search right now. "
+                    "Please try again."
+                )
 
-                raise
+                result = {
+                    "final_answer": (
+                        "I couldn't complete the job search right now. "
+                        "Please try again."
+                    ),
+                    "last_search_results": [],
+                }
 
         # -----------------------------------------------------------
         # Final assistant response
@@ -582,11 +600,10 @@ if user_input:
 
         interaction = result.get("interaction")
 
+        # generate_content() responses do not expose an interaction.id.
+        # Conversation state is currently managed inside the graph.
         if interaction is not None:
-
-            st.session_state.last_interaction_id = (
-                interaction.id
-            )
+            st.session_state.last_interaction_id = None
 
         # -----------------------------------------------------------
         # Store assistant message

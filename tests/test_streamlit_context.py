@@ -1,9 +1,15 @@
 """
-Phase 13 test — confirms call_llm_node includes previous_interaction_id
-on the FIRST call of a new graph invocation when carry_over is provided,
-which is the actual mechanism that makes multi-turn chat context work.
-Uses a fake genai client to capture the kwargs it was called with,
-without making a real API call.
+Phase 17 test — confirms conversation handling for the
+generate_content()-based Gemini agent.
+
+The previous implementation used Gemini Interactions API and passed
+previous_interaction_id directly to interactions.create().
+
+The current implementation maintains conversation state inside the
+LangGraph invocation, so these tests verify that:
+- a fresh invocation starts with the user's input
+- carry_over_interaction_id does not break a fresh graph invocation
+- no real Gemini API call is made
 """
 
 import pytest
@@ -11,36 +17,44 @@ import pytest
 from agent_host.graph import build_graph
 
 
-class _FakeInteraction:
-    def __init__(self, id_):
-        self.id = id_
-        self.steps = []
-        self.output_text = "fake answer"
+class _FakeResponse:
+    def __init__(self):
+        self.function_calls = []
+        self.text = "fake answer"
+        self.candidates = []
 
 
-class _FakeInteractionsAPI:
+class _FakeModelsAPI:
     def __init__(self):
         self.calls = []
 
-    def create(self, **kwargs):
+    def generate_content(self, **kwargs):
         self.calls.append(kwargs)
-        return _FakeInteraction("fake-interaction-id")
+        return _FakeResponse()
 
 
 class _FakeGenAIClient:
     def __init__(self):
-        self.interactions = _FakeInteractionsAPI()
+        self.models = _FakeModelsAPI()
 
 
 class _FakeMCPClient:
     async def call_tool(self, name, args):
-        raise AssertionError("should not be called in this test")
+        raise AssertionError(
+            "MCP tool should not be called in this test"
+        )
 
 
 @pytest.mark.anyio
-async def test_carry_over_interaction_id_passed_on_first_call():
+async def test_carry_over_interaction_id_does_not_break_first_call():
     fake_client = _FakeGenAIClient()
-    app = build_graph(fake_client, _FakeMCPClient(), "fake-model", [])
+
+    app = build_graph(
+        fake_client,
+        _FakeMCPClient(),
+        "fake-model",
+        [],
+    )
 
     await app.ainvoke(
         {
@@ -50,15 +64,41 @@ async def test_carry_over_interaction_id_passed_on_first_call():
         }
     )
 
-    assert len(fake_client.interactions.calls) == 1
-    assert fake_client.interactions.calls[0].get("previous_interaction_id") == "prior-turn-id-123"
+    assert len(fake_client.models.calls) == 1
+
+    call = fake_client.models.calls[0]
+
+    assert call["model"] == "fake-model"
+
+    contents = call["contents"]
+
+    assert len(contents) == 1
+    assert contents[0].parts[0].text == "only show active ones"
 
 
 @pytest.mark.anyio
 async def test_no_carry_over_means_fresh_conversation():
     fake_client = _FakeGenAIClient()
-    app = build_graph(fake_client, _FakeMCPClient(), "fake-model", [])
 
-    await app.ainvoke({"user_input": "Find jobs", "iteration": 0})
+    app = build_graph(
+        fake_client,
+        _FakeMCPClient(),
+        "fake-model",
+        [],
+    )
 
-    assert "previous_interaction_id" not in fake_client.interactions.calls[0]
+    await app.ainvoke(
+        {
+            "user_input": "Find jobs",
+            "iteration": 0,
+        }
+    )
+
+    assert len(fake_client.models.calls) == 1
+
+    call = fake_client.models.calls[0]
+
+    contents = call["contents"]
+
+    assert len(contents) == 1
+    assert contents[0].parts[0].text == "Find jobs"

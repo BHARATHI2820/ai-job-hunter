@@ -11,6 +11,20 @@ import requests
 
 from core.sources.base import JobSource
 
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
+from core.logging_config import get_logger
+
+logger = get_logger(__name__)
+
+def _is_retryable(exc: BaseException) -> bool:
+    if isinstance(exc, (requests.exceptions.ConnectionError, requests.exceptions.Timeout)):
+        return True
+    if isinstance(exc, requests.exceptions.HTTPError):
+        status = exc.response.status_code if exc.response is not None else None
+        # 429 = rate limit / quota — retrying won't help mid-search, so skip it.
+        return status in (500, 502, 503, 504)
+    return False
+
 
 class AdzunaSource(JobSource):
     BASE_URL = "https://api.adzuna.com/v1/api/jobs"
@@ -24,6 +38,16 @@ class AdzunaSource(JobSource):
             raise ValueError(
                 "ADZUNA_APP_ID and ADZUNA_APP_KEY must be set in .env"
             )
+    @retry(
+        stop=stop_after_attempt(2),
+        wait=wait_exponential(multiplier=1, min=1, max=4),
+        retry=retry_if_exception(_is_retryable),
+        reraise=True,
+    )
+    def _get(self, url: str, params: dict):
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        return response
 
     def search(self, role: str, location: str) -> list[dict]:
         url = f"{self.BASE_URL}/{self.country}/search/1"
@@ -35,8 +59,18 @@ class AdzunaSource(JobSource):
             "results_per_page": 10,
         }
 
-        response = requests.get(url, params=params, timeout=10)
-        response.raise_for_status()
+        try:
+            response = self._get(url, params)
+        except requests.exceptions.HTTPError as exc:
+            status = exc.response.status_code if exc.response is not None else None
+            if status == 429:
+                logger.warning("[ADZUNA] Rate limit / quota hit (429) — skipping this source")
+            else:
+                logger.warning(f"[ADZUNA] Request failed: {exc}")
+            raise
+        except requests.exceptions.RequestException as exc:
+            logger.warning(f"[ADZUNA] Giving up after retry: {type(exc).__name__}: {exc}")
+            raise
         raw_results = response.json().get("results", [])
 
         # Map Adzuna's field names into our own shape.

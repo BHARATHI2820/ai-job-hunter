@@ -8,8 +8,21 @@ The API-specific response format is mapped into our common raw-job shape.
 import os
 
 import requests
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
+from core.logging_config import get_logger
 from core.sources.base import JobSource
+
+logger = get_logger(__name__)
+
+
+def _is_retryable(exc: BaseException) -> bool:
+    if isinstance(exc, (requests.exceptions.ConnectionError, requests.exceptions.Timeout)):
+        return True
+    if isinstance(exc, requests.exceptions.HTTPError):
+        status = exc.response.status_code if exc.response is not None else None
+        return status in (500, 502, 503, 504)
+    return False
 
 
 class IndianAPISource(JobSource):
@@ -23,6 +36,22 @@ class IndianAPISource(JobSource):
                 "INDIANAPI_JOBS_API_KEY must be set in .env"
             )
 
+    @retry(
+        stop=stop_after_attempt(2),
+        wait=wait_exponential(multiplier=1, min=1, max=4),
+        retry=retry_if_exception(_is_retryable),
+        reraise=True,
+    )
+    def _get(self, headers: dict, params: dict):
+        response = requests.get(
+            self.BASE_URL,
+            headers=headers,
+            params=params,
+            timeout=15,
+        )
+        response.raise_for_status()
+        return response
+
     def search(self, role: str, location: str) -> list[dict]:
         headers = {
             "x-api-key": self.api_key,
@@ -35,13 +64,18 @@ class IndianAPISource(JobSource):
             "limit": 10,
         }
 
-        response = requests.get(
-            self.BASE_URL,
-            headers=headers,
-            params=params,
-            timeout=15,
-        )
-        response.raise_for_status()
+        try:
+            response = self._get(headers, params)
+        except requests.exceptions.HTTPError as exc:
+            status = exc.response.status_code if exc.response is not None else None
+            if status == 429:
+                logger.warning("[INDIANAPI] Quota exhausted (429) — skipping this source")
+            else:
+                logger.warning(f"[INDIANAPI] Request failed: {exc}")
+            raise
+        except requests.exceptions.RequestException as exc:
+            logger.warning(f"[INDIANAPI] Giving up after retry: {type(exc).__name__}: {exc}")
+            raise
 
         raw_results = response.json()
 

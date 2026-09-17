@@ -9,3 +9,4 @@ chromadb>=0.5.23
 psycopg[binary]>=3.2.3
 langgraph>=1.2.0,<2.0.0
 streamlit>=1.50
+tenacity>=9.0.0,<10.0.0

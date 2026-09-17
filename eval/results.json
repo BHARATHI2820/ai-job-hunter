@@ -1,0 +1,19 @@
+{
+  "results": [
+    {
+      "query": "GenAI Engineer @ Chennai",
+      "fixture": "genai_engineer_chennai.json",
+      "top_k": 5,
+      "relevant_in_top_k": 2,
+      "precision_at_5": 0.4,
+      "ranked_titles": [
+        "Senior Specialist Data Sciences Chennai \u2014 Alphacom Systems and Solutions",
+        "Data Scientist \u2014 Dun & Bradstreet India",
+        "Agentic AI Data Engineer \u2013 Snowflake & Cortex AI \u2014 Virtusa",
+        "Senior Data Modeler - AI & Advanced Analytics [LLM / Azure / GCP] \u2014 Luxoft India",
+        "Presales Executive \u2014 OptiSol Business Solutions"
+      ]
+    }
+  ],
+  "average_precision_at_5": 0.4
+}
